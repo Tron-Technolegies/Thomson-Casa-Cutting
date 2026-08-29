@@ -1,24 +1,39 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiCalendar } from "react-icons/fi";
 import OrdersTable from "../components/orders/OrdersTable";
 import OrderModal from "../components/orders/OrderModal";
-
-const cuttingOrdersData = [
-  { id: "ORD-2026-0183", customer: "Raj Foods Pvt Ltd", type: "Dressed Chicken", weight: "250 Kg", status: "Ready" },
-  { id: "ORD-2026-0183", customer: "Fresh Mart", type: "Full Chicken", weight: "150 Kg", status: "Cutting" },
-  { id: "ORD-2026-0183", customer: "Splyzone Pvt Ltd", type: "Dressed Chicken", weight: "150 Kg", status: "Ready" },
-  { id: "ORD-2026-0183", customer: "Local Eatery", type: "Chicken Wings", weight: "50 Kg", status: "Pending" },
-  { id: "ORD-2026-0183", customer: "Grill House", type: "Boneless Breast", weight: "100 Kg", status: "Pending" },
-  { id: "ORD-2026-0183", customer: "Daily Mart", type: "Dressed Chicken", weight: "200 Kg", status: "Cutting" },
-];
+import { api } from "../services/api";
 
 export default function CuttingOrders() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/cutting/orders/');
+      setOrders(response.data);
+    } catch (error) {
+      console.error("Failed to fetch cutting orders", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const handleEditClick = (order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
+  };
+
+  const handleStatusUpdate = () => {
+    setIsModalOpen(false);
+    fetchOrders(); // Refresh table after update
   };
 
   return (
@@ -28,22 +43,27 @@ export default function CuttingOrders() {
         
         <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
           <FiCalendar />
-          <span className="font-medium">20/10/2026</span>
+          <span className="font-medium">{new Date().toLocaleDateString('en-GB')}</span>
         </button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <OrdersTable 
-          orders={cuttingOrdersData} 
-          onActionClick={handleEditClick} 
-          actionType="edit" 
-        />
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading orders...</div>
+        ) : (
+          <OrdersTable 
+            orders={orders} 
+            onActionClick={handleEditClick} 
+            actionType="edit" 
+          />
+        )}
       </div>
 
       <OrderModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         order={selectedOrder} 
+        onUpdate={handleStatusUpdate}
       />
     </div>
   );
