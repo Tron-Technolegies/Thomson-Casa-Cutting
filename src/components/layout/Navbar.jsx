@@ -42,11 +42,11 @@ function Navbar({ setSidebarOpen }) {
       <div className="flex items-center gap-6">
         {/* Search */}
 
-        <div className="hidden md:flex items-center bg-[#F7F7F7] border border-[#00000026] rounded-xl px-4 py-2 w-72">
+        {/* <div className="hidden md:flex items-center bg-[#F7F7F7] border border-[#00000026] rounded-xl px-4 py-2 w-72">
           <FiSearch className="text-gray-400" />
 
           <input type="text" placeholder="Search..." className="ml-2 w-full outline-none bg-transparent" />
-        </div>
+        </div> */}
 
         {/* Notification */}
 
