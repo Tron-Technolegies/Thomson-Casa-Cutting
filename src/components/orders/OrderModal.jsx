@@ -3,30 +3,48 @@ import { MdClose } from "react-icons/md";
 import { api } from "../../services/api";
 
 export default function OrderModal({ isOpen, onClose, order, onUpdate }) {
-  const [status, setStatus] = useState("Ready");
+  const [formData, setFormData] = useState({
+    status: "Ready",
+    cutting_notes: "",
+    items: []
+  });
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (order) {
-      setStatus(order.status);
+      // Create a deep copy of items to avoid mutating props
+      const orderItems = order.items ? JSON.parse(JSON.stringify(order.items)) : [];
+      setFormData({
+        status: order.status || "Ready",
+        cutting_notes: order.cutting_notes || "",
+        items: orderItems
+      });
     }
   }, [order]);
 
   if (!isOpen) return null;
 
-  const handleStatusChange = async (e) => {
-    const newStatus = e.target.value;
-    setStatus(newStatus);
-    
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
+    setFormData(prev => ({ ...prev, items: newItems }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (order && order.id) {
       setIsUpdating(true);
       try {
-        await api.put(`/cutting/orders/${order.id}/status/`, { status: newStatus });
+        await api.put(`/cutting/orders/${order.id}/`, formData);
         if (onUpdate) onUpdate();
       } catch (error) {
-        console.error("Failed to update status", error);
-        setStatus(order.status);
-        alert("Failed to update status");
+        console.error("Failed to update order", error);
+        alert("Failed to update order");
       } finally {
         setIsUpdating(false);
       }
@@ -45,59 +63,114 @@ export default function OrderModal({ isOpen, onClose, order, onUpdate }) {
           <MdClose size={24} />
         </button>
 
-        <div className="space-y-6">
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Order Number</label>
-            <input
-              type="text"
-              readOnly
-              value={order?.id || ""}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 bg-gray-50/50 outline-none focus:border-gray-300 transition-colors"
-            />
+        <form onSubmit={handleSubmit} className="space-y-5 max-h-[80vh] overflow-y-auto px-1 pb-2">
+          {/* Read Only Order Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Order Number</label>
+              <div className="font-medium text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{order?.id || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Customer</label>
+              <div className="font-medium text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 truncate">{order?.customer || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Type</label>
+              <div className="font-medium text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{order?.type || "-"}</div>
+            </div>
+            <div>
+              <label className="block text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Weight Ordered</label>
+              <div className="font-medium text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{order?.weight || "0"} kg</div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Customer Name</label>
-            <input
-              type="text"
-              readOnly
-              value={order?.customer || ""}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 bg-gray-50/50 outline-none focus:border-gray-300 transition-colors"
-            />
+          <hr className="border-gray-100" />
+
+          {/* Operational Tracking - Category Wise */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">Category-Wise Waste & Meat Tracking</h3>
+            
+            {formData.items.length === 0 && (
+              <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl text-center">No categories found for this order.</div>
+            )}
+
+            {formData.items.map((item, index) => (
+              <div key={item.id || index} className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                  <span className="font-bold text-gray-800">{item.chicken_type}</span>
+                  <span className="text-xs font-semibold text-gray-500 bg-white px-2 py-1 rounded shadow-sm border border-gray-200">
+                    Ordered: {item.weight} kg
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 text-xs font-medium mb-1">Raw Received (kg)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 50"
+                      value={item.received_quantity || ""}
+                      onChange={(e) => handleItemChange(index, "received_quantity", e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-[#465C8F] transition-all text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 text-xs font-medium mb-1">Waste Quantity (kg)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 10"
+                      value={item.waste_quantity || ""}
+                      onChange={(e) => handleItemChange(index, "waste_quantity", e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-[#465C8F] transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 text-xs font-medium mb-1">Actual Meat Delivered (kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 40"
+                    value={item.meat_delivered || ""}
+                    onChange={(e) => handleItemChange(index, "meat_delivered", e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-[#465C8F] transition-all text-sm"
+                  />
+                </div>
+              </div>
+            ))}
+
+
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-1">Cutting Notes / Remarks</label>
+              <textarea
+                name="cutting_notes"
+                rows="2"
+                placeholder="Any issues or specific details?"
+                value={formData.cutting_notes}
+                onChange={handleChange}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-gray-700 outline-none focus:border-[#465C8F] focus:ring-1 focus:ring-[#465C8F] transition-all resize-none"
+              ></textarea>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Chicken Type</label>
-            <input
-              type="text"
-              readOnly
-              value={order?.type || ""}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 bg-gray-50/50 outline-none focus:border-gray-300 transition-colors"
-            />
-          </div>
+          <hr className="border-gray-100" />
 
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Weight</label>
-            <input
-              type="text"
-              readOnly
-              value={order?.weight || ""}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 bg-gray-50/50 outline-none focus:border-gray-300 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-2">Status</label>
+            <label className="block text-gray-700 text-sm font-medium mb-2">Order Status</label>
             <div className="relative">
               <select
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 outline-none focus:border-gray-300 transition-colors appearance-none bg-white disabled:opacity-50"
-                value={status}
-                onChange={handleStatusChange}
-                disabled={isUpdating}
+                name="status"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-700 outline-none focus:border-[#465C8F] transition-colors appearance-none bg-white"
+                value={formData.status}
+                onChange={handleChange}
               >
-                <option value="Ready">Ready</option>
-                <option value="Cutting">Cutting</option>
                 <option value="Pending">Pending</option>
+                <option value="Cutting">Cutting</option>
+                <option value="Ready">Ready</option>
               </select>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +179,22 @@ export default function OrderModal({ isOpen, onClose, order, onUpdate }) {
               </div>
             </div>
           </div>
-        </div>
+
+          <div className="pt-4 border-t border-gray-100">
+            <button 
+              type="submit"
+              disabled={isUpdating}
+              className="w-full bg-[#465C8F] text-white py-3 rounded-xl font-semibold hover:bg-indigo-800 transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+            >
+              {isUpdating ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : "Save Changes"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

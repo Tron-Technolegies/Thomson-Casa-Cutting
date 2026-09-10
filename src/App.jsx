@@ -10,7 +10,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
-        <Route path="cutting-orders" element={<CuttingOrders />} />
+        <Route path="cutting-orders" element={<CuttingOrders/>} />
         <Route path="notification" element={<Notification />} />
       </Route>
     </Routes>
