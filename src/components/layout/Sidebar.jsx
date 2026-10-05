@@ -1,6 +1,7 @@
-import { NavLink } from "react-router-dom";
+import { NavLink,useNavigate  } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
-import { MdOutlineDashboard, MdClose } from "react-icons/md";
+import { MdOutlineDashboard, MdClose,MdLogout } from "react-icons/md";
 
 import { FiScissors, FiBell } from "react-icons/fi";
 
@@ -25,6 +26,14 @@ const menus = [
 ];
 
 function Sidebar({ sidebarOpen, setSidebarOpen }) {
+      const { logout } = useAuth();
+      const navigate = useNavigate();
+
+      const handleLogout = () => {
+        logout();
+        setSidebarOpen(false);
+        navigate("/login");
+      };
   return (
     <>
       {/* Mobile Overlay */}
@@ -76,6 +85,13 @@ function Sidebar({ sidebarOpen, setSidebarOpen }) {
               <span>{menu.name}</span>
             </NavLink>
           ))}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition"
+          >
+            <MdLogout size={22} />
+            <span>Logout</span>
+          </button>
         </nav>
       </aside>
     </>
