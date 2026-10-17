@@ -35,7 +35,7 @@ export default function Login() {
         <div className="p-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-[#465C8F] mb-2">Thomson Casa</h2>
-            <p className="text-gray-500 text-sm">Please sign in to your admin account</p>
+            <p className="text-gray-500 text-sm">Please sign in to access your cutting team workspace</p>
           </div>
 
           {error && (
