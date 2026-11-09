@@ -43,30 +43,44 @@ export const api = {
     }
   },
 
-  post: async (endpoint, body) => {
+
+post: async (endpoint, body) => {
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...api.getHeaders()
+      },
+      body: JSON.stringify(body),
+    });
+
+    const responseText = await response.text();
+
+    let data = {};
     try {
-      const response = await fetch(`${BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...api.getHeaders()
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
-      }
-      
-      // Invalidate cache on mutation
-      cache.clear();
-      
-      return data;
-    } catch (error) {
-      console.error("API POST Error:", error);
-      throw error;
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      data = { detail: responseText };
     }
-  },
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail ||
+        data.message ||
+        data.error ||
+        `Request failed with status ${response.status}`
+      );
+    }
+
+    cache.clear();
+    return data;
+
+  } catch (error) {
+    console.error("API POST Error:", error);
+    throw error;
+  }
+},
 
   put: async (endpoint, body) => {
     try {
